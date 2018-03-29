@@ -1,0 +1,5 @@
+Press 'Tab' to Open Masihini Terminal
+Write your own code!
+Press 'Clear' to clear the Terminal
+Press 'Run' to run and compile!
+Enjoy!

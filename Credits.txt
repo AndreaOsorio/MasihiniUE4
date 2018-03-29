@@ -1,0 +1,16 @@
+CREDITS
+
+This project was created for the course of Compiler Design of Tec de Monterrey.
+
+Designed and Created by:
+Ruben Hidalgo
+Andrea Osorio
+
+
+Special Thanks to:
+Elda Quiroga
+Hector Ceballos
+
+Created using Flex and Bison C++ and Unreal Engine v4.18.3
+
+
