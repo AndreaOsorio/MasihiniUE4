@@ -1,9 +1,9 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "MasihiniGameMode.h"
-#include "MasihiniPawn.h"
+#include "Rover.h"
 
 AMasihiniGameMode::AMasihiniGameMode()
 {
-	DefaultPawnClass = AMasihiniPawn::StaticClass();
+	DefaultPawnClass = ARover::StaticClass();
 }
