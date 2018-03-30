@@ -15,6 +15,7 @@
 #include "GameFramework/Controller.h"
 #include "TimerManager.h"
 #include "Classes/Materials/MaterialInstanceDynamic.h"
+#include "Classes/Materials/Material.h"
 #include "Classes/Animation/AnimInstance.h"
 #include "OutputDevice.h"
 #include "OutputDeviceNull.h"
@@ -84,24 +85,43 @@ ARover::ARover()
 	static ConstructorHelpers::FObjectFinder<USoundCue> EngineCue(TEXT("/Game/MAARS/Sounds/S_Engine-loop_Cue"));
 	EngineSound->SetSound(EngineCue.Object);
 	
-	/*
-	//Material Instance Dynamic 
+	
+	/** Materials */ 
 	RoverColor = FLinearColor(FColor::White);
-	if (!MainMaterial)
+	// Material'/Game/MAARS/Materials/M_MAARS_Master.M_MAARS_Master'
+	static ConstructorHelpers::FObjectFinder<UMaterialInstance> Mat0(TEXT("MaterialInstanceConstant'/Game/MAARS/Materials/M_MAARS_1_Inst.M_MAARS_1_Inst'"));
+	if (Mat0.Succeeded())
 	{
-		MainMaterial = UMaterialInstanceDynamic::Create(Mesh->GetMaterial(1), this);
-		Mesh->SetMaterial(0, MainMaterial);
+		RoverMaterial = (UMaterial*)Mat0.Object;
 	}
 	
-	if (!DynMaterial)
+	// Material'/Game/MAARS/Materials/M_MAARS_Master.M_MAARS_Master'
+	static ConstructorHelpers::FObjectFinder<UMaterialInstance> Mat1(TEXT("MaterialInstanceConstant'/Game/MAARS/Materials/M_MAARS_2_Inst.M_MAARS_2_Inst'"));
+	if (Mat1.Succeeded())
 	{
-		DynMaterial = UMaterialInstanceDynamic::Create(Mesh->GetMaterial(1), this);
-		Mesh->SetMaterial(1, DynMaterial);
-		RepaintRover(this);
+		WheelsMaterial = (UMaterial*)Mat1.Object;
 	}
-	*/
 
-	
+	if (!UKismetSystemLibrary::IsValid(MainMaterial))
+	{
+		MainMaterial = UMaterialInstanceDynamic::Create(RoverMaterial, Mesh);
+		if (MainMaterial)
+		{
+			Mesh->SetMaterial(0, MainMaterial);
+		}
+		
+		
+
+		if (!UKismetSystemLibrary::IsValid(DynMaterial))
+		{
+			DynMaterial = UMaterialInstanceDynamic::Create(WheelsMaterial, Mesh);
+			if (DynMaterial)
+			{
+				Mesh->SetMaterial(1, DynMaterial);
+				RepaintRover(this);
+			}
+		}
+	}
 	
 	bIsJumping = false;
 	bIsRotating = false;
@@ -268,12 +288,11 @@ void ARover::UpdateEngineSound()
 void ARover::UpdateSkControlsAndMats()
 {
 
-	//DynMaterial->SetScalarParameterValue("TillingSpeed", mEngineSpeed*(-0.1f));
+	DynMaterial->SetScalarParameterValue("TilingSpeed", mEngineSpeed*(-0.1f));
 	
 	UAnimInstance* animBP = Cast<UAnimInstance>(Mesh->GetAnimInstance());
 	if (!animBP) { return; }
 
-	//UE_LOG(LogTemp, Warning, TEXT("AnimBP Found"));
 	FOutputDeviceNull ar;
 	const FString speedCommand = FString::Printf(TEXT("SetSpeed %f"), mEngineSpeed);
 	animBP->CallFunctionByNameWithArguments(*speedCommand, ar, NULL, true);
@@ -288,9 +307,9 @@ void ARover::UpdateSkControlsAndMats()
 
 void ARover::RepaintRover(ARover *self)
 {
-	/*
+	
 	MainMaterial->SetVectorParameterValue("Color", RoverColor);
-	*/
+	
 }
 
 void ARover::OnHandbrakePressed()

@@ -112,16 +112,20 @@ public:
 
 #pragma endregion
 	
-	/*
-	UMaterialInstanceDynamic* DynMaterial;
-	UMaterialInstanceDynamic* MainMaterial;
+#pragma region Materials & Sounds
+
+	UMaterialInstanceDynamic* MainMaterial; // Main Material (For Color)
+	UMaterialInstanceDynamic* DynMaterial;  // Dynamic Material (For Wheels) 
 	FLinearColor RoverColor;
-	*/
+
+	UMaterial* RoverMaterial;
+	UMaterial* WheelsMaterial;
+	
+	void UpdateSkControlsAndMats();
+	void RepaintRover(ARover *self);
 	void UpdateEngineSound();
 
-	void UpdateSkControlsAndMats();
-
-	void RepaintRover(ARover *self);
+#pragma endregion
 
 
 protected:
