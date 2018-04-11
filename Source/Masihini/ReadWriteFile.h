@@ -21,8 +21,16 @@ class MASIHINI_API UReadWriteFile : public UBlueprintFunctionLibrary
 
 		UFUNCTION(BlueprintPure, Category = "Masihini", meta = (Keywords = "SaveCode"))
 			static bool FileSaveCode(FString SaveTextB, FString FileNameB);
+
+
+
+		UFUNCTION(BlueprintCallable, Category = "Masihini", meta = (Keywords = "CopyCode"))
+			static void TransferMasihini();
 	
-	
+		UFUNCTION(BlueprintCallable, Category = "Masihini", meta = (Keywords = "CompileCode"))
+			static void CompileMasihini();
+
+		
 	
 	
 };
