@@ -9,6 +9,7 @@
 class UCameraComponent;
 class USpringArmComponent;
 class UAudioComponent;
+class UTextRenderComponent;
 
 UCLASS()
 class MASIHINI_API ARover : public APawn
@@ -40,6 +41,9 @@ private:
 	UPROPERTY(EditDefaultsOnly)
 		UAudioComponent* EngineSound;
 
+	UPROPERTY(EditDefaultsOnly)
+		UTextRenderComponent* SpeakText;
+
 	
 
 #pragma endregion
@@ -58,9 +62,14 @@ private:
 	/** Time Handlers  */
 	FTimerHandle BrakeHandle; //Handbrake Handle
 	FTimerHandle JumpHandle; // Jump Handle
+	FTimerHandle MovementHandle; // Movement Handle
+
+	FTimerDelegate TimerDelegate;  //  Used for binding UFunctions with parameters using Timer Handlers
 
 	float mMovementSpeed;
 	float mMaxVelocity;
+
+	int metersMoved;
 
 	float mEngineSpeed;
 	float mEngineAcceleration;
@@ -80,14 +89,28 @@ private:
 
 #pragma endregion
 
+#pragma region Masihini Variables
+
+	int instructionsSize;
+	TArray<FString> instructions;
+
+	int currentInstruction;
+
+	FTimerHandle InstructionHandle; // Masihini Handle
+
+	bool isInstructionDone;
+
+#pragma endregion
+
 public:
 	// Sets default values for this pawn's properties
 	ARover();
 
-#pragma region Movement
+#pragma region Mechanics
 
 	/** Handle pressing forwards */
-	void MoveForward(float value);
+	UFUNCTION()
+		void MoveForward(float value, int mts);
 	/** Handle pressing right */
 	void MoveRight(float value);
 
@@ -107,8 +130,12 @@ public:
 
 	/** Handle Jump with vehicle */
 	void OnJump();
-	/** Handle Jump released*/
+	/** Handle Jump released */
 	void OnJumpRelease();
+
+	/** Handle Rover Speak */
+	void OnSpeak(FString dialogue);
+
 
 #pragma endregion
 	
@@ -124,6 +151,21 @@ public:
 	void UpdateSkControlsAndMats();
 	void RepaintRover(ARover *self);
 	void UpdateEngineSound();
+
+#pragma endregion
+
+
+#pragma region Masihini Functions
+
+	void SetInstructionsSize(int newSize);
+
+	void SetInstructions(TArray<FString> newInstructions);
+
+	void AnalyzeInstruction(FString instruction);
+
+	void StartMasihiniExecution();
+
+	
 
 #pragma endregion
 
@@ -146,5 +188,7 @@ public:
 	FORCEINLINE UCameraComponent* GetCamera() const { return Camera; }
 	/** Returns EngineSoundComponent subobject **/
 	FORCEINLINE UAudioComponent* GetEngineSound() const { return EngineSound; }
+	/** Returns TextRenderComponent subobject **/
+	FORCEINLINE UTextRenderComponent* GetTextRender() const { return SpeakText; }
 
 };

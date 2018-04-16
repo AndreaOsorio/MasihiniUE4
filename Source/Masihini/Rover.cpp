@@ -22,6 +22,8 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/GameplayStatics.h"
+#include "Runtime/Engine/Classes/Engine/TextRenderActor.h"
+#include "Runtime/Engine/Classes/Components/TextRenderComponent.h"
 
 // Sets default values
 ARover::ARover()
@@ -127,20 +129,31 @@ ARover::ARover()
 	bIsRotating = false;
 	bIsStopped = false;
 
-	mMovementSpeed = 200000.0f;
+	mMovementSpeed = 100000.0f;
 	mMaxVelocity = 500.0f;
+	metersMoved = 0;
 
 	mEngineSpeed = 0.0f;
 	mEngineAcceleration = 0.0f;
 	
 	mRotateRate = 0.0f;
-	mRotationSpeed = 10000.0f;
+	mRotationSpeed = 5000.0f;
 
 	mTowerRotX = 0.0f;
 	mTowerRotY = 0.0f;
 
 	boneName = FName(TEXT("None"));
 	impulseForce = new FVector(0.0f, 0.0f, 1000.0f);
+	
+	SpeakText = CreateDefaultSubobject<UTextRenderComponent>("SpeakComponent");
+	SpeakText->SetTextRenderColor(FColor::White);
+	SpeakText->SetupAttachment(RootComponent);
+	SpeakText->SetRelativeLocation(FVector(0.0f, 50.0f, 150.0f));
+
+
+	currentInstruction = 0;
+	
+	
 }
 
 
@@ -159,6 +172,7 @@ void ARover::Tick(float DeltaTime)
 	UpdateSkControlsAndMats();
 
 	UpdateEngineSound();
+
 }
 
 // Called to bind functionality to input
@@ -169,15 +183,15 @@ void ARover::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	// set up gameplay key bindings
 	check(PlayerInputComponent);
 
-	PlayerInputComponent->BindAxis("MoveForward", this, &ARover::MoveForward);
-	PlayerInputComponent->BindAxis("MoveRight", this, &ARover::MoveRight);
+	//PlayerInputComponent->BindAxis("MoveForward", this, &ARover::MoveForward);
+	//PlayerInputComponent->BindAxis("MoveRight", this, &ARover::MoveRight);
 
-	PlayerInputComponent->BindAction("Handbrake", IE_Pressed, this, &ARover::OnHandbrakePressed);
+	//PlayerInputComponent->BindAction("Handbrake", IE_Pressed, this, &ARover::OnHandbrakePressed);
 
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ARover::OnJump);
 }
 
-void ARover::MoveForward(float value)
+void ARover::MoveForward(float value, int mts)
 {
 	
 	if (!bIsStopped && mRotateRate == 0.0f)
@@ -186,7 +200,20 @@ void ARover::MoveForward(float value)
 		FVector forceVector = movementVector * (value * mMovementSpeed);
 		AddMovement(this, forceVector);
 		AddEngineSpeed(this, value, -0.05f);
-	}	
+		
+		if (mts == 1)
+		{
+			isInstructionDone = true;
+			mEngineAcceleration = 0.0f;
+			GetWorldTimerManager().SetTimer(InstructionHandle, this, &ARover::StartMasihiniExecution, 1.0f, false);
+		}
+		else {
+			//Binding the function with specific values
+			TimerDelegate.BindUFunction(this, FName("MoveForward"), value, mts-1);
+			//Calling MoveForward after one second
+			GetWorldTimerManager().SetTimer(MovementHandle, TimerDelegate, 0.25f, false);
+		}
+	}
 
 }
 
@@ -200,6 +227,9 @@ void ARover::MoveRight(float value)
 		FVector angularVelocity = UKismetMathLibrary::MakeVector(0.0f, 0.0f, vectorZ);
 		Mesh->SetPhysicsAngularVelocityInDegrees(angularVelocity, false, boneName);
 		AddEngineSpeed(this, value, -0.03f);
+		mRotateRate = 0.0f;
+		mEngineAcceleration = 0.0f;
+		GetWorldTimerManager().SetTimer(InstructionHandle, this, &ARover::StartMasihiniExecution, 0.5f, false);
 	}
 
 }
@@ -287,7 +317,10 @@ void ARover::UpdateEngineSound()
 
 void ARover::UpdateSkControlsAndMats()
 {
-
+	if (mEngineAcceleration != 0.0f)
+	{
+		AddEngineSpeed(this, 20.0f, -0.05f);
+	}
 	DynMaterial->SetScalarParameterValue("TilingSpeed", mEngineSpeed*(-0.1f));
 	
 	UAnimInstance* animBP = Cast<UAnimInstance>(Mesh->GetAnimInstance());
@@ -317,18 +350,29 @@ void ARover::OnHandbrakePressed()
 	bIsStopped = true;
 	Mesh->SetPhysicsLinearVelocity(FVector(0.0f,0.0f,0.0f), false, boneName);
 
+	mEngineAcceleration = 0.0f;
 	GetWorldTimerManager().SetTimer(BrakeHandle, this, &ARover::OnHandbrakeReleased, 0.2f, false);
 }
 
 void ARover::OnHandbrakeReleased()
 {
-	bIsStopped = false;
+	bIsStopped = false; 
+	GetWorldTimerManager().SetTimer(InstructionHandle, this, &ARover::StartMasihiniExecution, 0.5f, false);
 }
 
 void ARover::OnJump()
 {
 	if (this->GetVelocity().Z >= 0.0f && !bIsJumping)
 	{
+		
+		if (Mesh->GetBodyInstance())
+		{
+			FBodyInstance *bodyInstance = Mesh->GetBodyInstance();
+			bodyInstance->bLockXRotation = true;
+			bodyInstance->bLockYRotation = true;
+			bodyInstance->bLockZRotation = true;
+			bodyInstance->SetDOFLock(EDOFMode::SixDOF);
+		}
 		Mesh->SetPhysicsLinearVelocity(*impulseForce, true, boneName);
 		bIsJumping = true;
 		GetWorldTimerManager().SetTimer(JumpHandle, this, &ARover::OnJumpRelease, 1.0f, false);
@@ -337,7 +381,97 @@ void ARover::OnJump()
 
 void ARover::OnJumpRelease()
 {
+
+	if (Mesh->GetBodyInstance())
+	{
+		FBodyInstance *bodyInstance = Mesh->GetBodyInstance();
+		bodyInstance->bLockXRotation = false;
+		bodyInstance->bLockYRotation = false;
+		bodyInstance->bLockZRotation = false;
+		bodyInstance->SetDOFLock(EDOFMode::Default);
+	}
+
 	bIsJumping = false;
+
+	GetWorldTimerManager().SetTimer(InstructionHandle, this, &ARover::StartMasihiniExecution, 0.5f, false);
+
+}
+
+void ARover::OnSpeak(FString dialogue)
+{
+	FText dialogueText = FText::FromString(dialogue);
+	SpeakText->SetText(dialogueText);
+	GetWorldTimerManager().SetTimer(InstructionHandle, this, &ARover::StartMasihiniExecution, 0.5f, false);
+}
+
+void ARover::SetInstructionsSize(int newSize)
+{
+	instructionsSize = newSize;
+}
+
+void ARover::SetInstructions(TArray<FString> newInstructions)
+{
+	instructions = newInstructions;
+}
+
+void ARover::AnalyzeInstruction(FString instruction)
+{
+	if (instruction.Contains("move"))
+	{
+		int32 meters = 0;
+		if (instruction.Contains("forward"))
+		{
+			meters = FCString::Atoi(*instruction.RightChop(13));
+			UE_LOG(LogTemp, Warning, TEXT("Move fwd %d"), meters);
+			MoveForward(-20.0f, meters);
+		}
+		else 
+		{
+			meters = FCString::Atoi(*instruction.RightChop(14));
+			UE_LOG(LogTemp, Warning, TEXT("Move back %d"), meters);
+			MoveForward(20.0f, meters);
+		}
+	}
+	else if(instruction.Contains("rotate"))
+	{
+		int32 angles = FCString::Atoi(*instruction.RightChop(6));
+		UE_LOG(LogTemp, Warning, TEXT("Rotate %d"), angles);
+
+		float anglesRover = 0.0f;
+		
+		/** UE4 angles goes from -180 to 180 */
+		anglesRover = angles / 2.0f;
+		anglesRover = anglesRover / 10.0f;
+		anglesRover = FMath::Clamp(anglesRover, -180.0f, 180.0f);
+		MoveRight(anglesRover);
+	}
+	else if (instruction.Contains("stop"))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Stop"));
+		OnHandbrakePressed();
+	}
+	else if (instruction.Contains("jump"))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Jump"));
+		OnJump();
+	}
+	else 
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Speak: %s"), *instruction);
+		OnSpeak(instruction);
+	}
+
+}
+
+void ARover::StartMasihiniExecution() 
+{
+	if (currentInstruction < instructionsSize)
+	{
+		FString instruction = instructions[currentInstruction];
+		AnalyzeInstruction(instructions[currentInstruction]);
+		currentInstruction++;
+	}
+	
 }
 
 

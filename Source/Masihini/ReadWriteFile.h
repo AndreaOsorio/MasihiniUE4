@@ -30,7 +30,7 @@ class MASIHINI_API UReadWriteFile : public UBlueprintFunctionLibrary
 		UFUNCTION(BlueprintCallable, Category = "Masihini", meta = (Keywords = "CompileCode"))
 			static void CompileMasihini();
 
-		
-	
+		UFUNCTION(BlueprintCallable, Category = "Masihini", meta = (WorldContext = WorldContextObject))
+			static void ExecuteMasihini(UObject * WorldContextObject);
 	
 };
