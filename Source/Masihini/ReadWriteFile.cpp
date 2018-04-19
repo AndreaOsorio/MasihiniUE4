@@ -45,7 +45,7 @@ void UReadWriteFile::CompileMasihini()
 
 void UReadWriteFile::ExecuteMasihini(UObject * WorldContextObject)
 {
-	FString pathExec = FPaths::ProjectDir() + "log.txt";
+	FString pathExec = FPaths::ProjectDir() + "output.txt";
 	TArray<FString> lines;
 	FString FileData;
 	bool valid = FFileHelper::LoadFileToString(FileData, *pathExec);

@@ -24,6 +24,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Runtime/Engine/Classes/Engine/TextRenderActor.h"
 #include "Runtime/Engine/Classes/Components/TextRenderComponent.h"
+#include "SpeechBubble.h"
 
 // Sets default values
 ARover::ARover()
@@ -68,7 +69,7 @@ ARover::ARover()
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	SpringArm->SetRelativeRotation(FRotator(-20.f, -180.0f, 0.f));
 	SpringArm->SetupAttachment(Weapon);
-	SpringArm->TargetArmLength = 300.0f;
+	SpringArm->TargetArmLength = 450.0f;
 	SpringArm->bEnableCameraRotationLag = true;
 	SpringArm->CameraRotationLagSpeed = 10.0f;
 	SpringArm->bInheritPitch = true;
@@ -90,14 +91,12 @@ ARover::ARover()
 	
 	/** Materials */ 
 	RoverColor = FLinearColor(FColor::White);
-	// Material'/Game/MAARS/Materials/M_MAARS_Master.M_MAARS_Master'
 	static ConstructorHelpers::FObjectFinder<UMaterialInstance> Mat0(TEXT("MaterialInstanceConstant'/Game/MAARS/Materials/M_MAARS_1_Inst.M_MAARS_1_Inst'"));
 	if (Mat0.Succeeded())
 	{
 		RoverMaterial = (UMaterial*)Mat0.Object;
 	}
 	
-	// Material'/Game/MAARS/Materials/M_MAARS_Master.M_MAARS_Master'
 	static ConstructorHelpers::FObjectFinder<UMaterialInstance> Mat1(TEXT("MaterialInstanceConstant'/Game/MAARS/Materials/M_MAARS_2_Inst.M_MAARS_2_Inst'"));
 	if (Mat1.Succeeded())
 	{
@@ -124,10 +123,22 @@ ARover::ARover()
 			}
 		}
 	}
+
+	SpeechSocket = FName(TEXT("SpeechSocket"));
+	
+	/* Creation of SpeechBubble Class Reference */
+	static ConstructorHelpers::FObjectFinder<UClass> SpeechBubbleClass_obj(TEXT("Class'/Script/Masihini.SpeechBubble'"));
+	if (SpeechBubbleClass_obj.Object)
+	{
+		SpeechBubbleClass = SpeechBubbleClass_obj.Object;
+	}
+
+	
 	
 	bIsJumping = false;
 	bIsRotating = false;
 	bIsStopped = false;
+	bIsSpeaking = false;
 
 	mMovementSpeed = 100000.0f;
 	mMaxVelocity = 500.0f;
@@ -145,12 +156,8 @@ ARover::ARover()
 	boneName = FName(TEXT("None"));
 	impulseForce = new FVector(0.0f, 0.0f, 1000.0f);
 	
-	SpeakText = CreateDefaultSubobject<UTextRenderComponent>("SpeakComponent");
-	SpeakText->SetTextRenderColor(FColor::White);
-	SpeakText->SetupAttachment(RootComponent);
-	SpeakText->SetRelativeLocation(FVector(0.0f, 50.0f, 150.0f));
-
-
+	
+	
 	currentInstruction = 0;
 	
 	
@@ -172,7 +179,9 @@ void ARover::Tick(float DeltaTime)
 	UpdateSkControlsAndMats();
 
 	UpdateEngineSound();
-
+	
+	UpdateSpeakingText();
+	
 }
 
 // Called to bind functionality to input
@@ -399,9 +408,32 @@ void ARover::OnJumpRelease()
 
 void ARover::OnSpeak(FString dialogue)
 {
+	SocketLoc = Mesh->GetSocketLocation(SpeechSocket);
+	SocketLoc += FVector(200.0f, 0.0f, 0.0f);
+	SocketRot = FRotator(0.0f, 0.0f, 0.0f);
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = this;
+	SpawnParams.Instigator = Instigator;
+	if (!Speech)
+	{
+		Speech = GetWorld()->SpawnActor<ASpeechBubble>(SpeechBubbleClass, SocketLoc, SocketRot, SpawnParams);
+		Speech->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepWorldTransform, SpeechSocket);
+	}
+	else{
+		Speech->GetMesh()->SetVisibility(true, false);
+		Speech->GetTextRender()->SetVisibility(true, false);
+	}
+
 	FText dialogueText = FText::FromString(dialogue);
-	SpeakText->SetText(dialogueText);
-	GetWorldTimerManager().SetTimer(InstructionHandle, this, &ARover::StartMasihiniExecution, 0.5f, false);
+	Speech->GetTextRender()->SetText(dialogueText);
+	GetWorldTimerManager().SetTimer(InstructionHandle, this, &ARover::StartMasihiniExecution, 2.0f, false);
+
+}	
+
+void ARover::UpdateSpeakingText()
+{
+	
 }
 
 void ARover::SetInstructionsSize(int newSize)
@@ -416,27 +448,18 @@ void ARover::SetInstructions(TArray<FString> newInstructions)
 
 void ARover::AnalyzeInstruction(FString instruction)
 {
-	if (instruction.Contains("move"))
+	if (instruction.Contains("ACCEL"))
 	{
-		int32 meters = 0;
-		if (instruction.Contains("forward"))
-		{
-			meters = FCString::Atoi(*instruction.RightChop(13));
-			UE_LOG(LogTemp, Warning, TEXT("Move fwd %d"), meters);
-			MoveForward(-20.0f, meters);
-		}
-		else 
-		{
-			meters = FCString::Atoi(*instruction.RightChop(14));
-			UE_LOG(LogTemp, Warning, TEXT("Move back %d"), meters);
-			MoveForward(20.0f, meters);
-		}
+		int32 meters = FCString::Atoi(*instruction.RightChop(5));
+		UE_LOG(LogTemp, Warning, TEXT("Move %d"), meters);
+		int direction = (-1)*(meters / meters);
+		meters = FMath::Abs(meters);
+		MoveForward(direction*20.0f, meters);
 	}
-	else if(instruction.Contains("rotate"))
+	else if(instruction.Contains("ROT"))
 	{
-		int32 angles = FCString::Atoi(*instruction.RightChop(6));
+		int32 angles = FCString::Atoi(*instruction.RightChop(3));
 		UE_LOG(LogTemp, Warning, TEXT("Rotate %d"), angles);
-
 		float anglesRover = 0.0f;
 		
 		/** UE4 angles goes from -180 to 180 */
@@ -445,26 +468,37 @@ void ARover::AnalyzeInstruction(FString instruction)
 		anglesRover = FMath::Clamp(anglesRover, -180.0f, 180.0f);
 		MoveRight(anglesRover);
 	}
-	else if (instruction.Contains("stop"))
+	else if (instruction.Contains("STOP"))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Stop"));
 		OnHandbrakePressed();
 	}
-	else if (instruction.Contains("jump"))
+	else if (instruction.Contains("JUMP"))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Jump"));
 		OnJump();
 	}
-	else 
+	else if (instruction.Contains("SPEAK"))
 	{
+		instruction = instruction.RightChop(5);
 		UE_LOG(LogTemp, Warning, TEXT("Speak: %s"), *instruction);
+		bIsSpeaking = true;
 		OnSpeak(instruction);
+	}
+	else{
+		GetWorldTimerManager().SetTimer(InstructionHandle, this, &ARover::StartMasihiniExecution, 0.5f, false);
 	}
 
 }
 
 void ARover::StartMasihiniExecution() 
 {
+	if (Speech)
+	{
+		Speech->GetMesh()->SetVisibility(false, false);
+		Speech->GetTextRender()->SetVisibility(false, false);
+	}
+
 	if (currentInstruction < instructionsSize)
 	{
 		FString instruction = instructions[currentInstruction];

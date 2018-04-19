@@ -41,8 +41,11 @@ private:
 	UPROPERTY(EditDefaultsOnly)
 		UAudioComponent* EngineSound;
 
-	UPROPERTY(EditDefaultsOnly)
-		UTextRenderComponent* SpeakText;
+	//Speech Bubble class to spawn
+	UPROPERTY(EditDefaultsOnly, Category = "Masihini")
+		TSubclassOf<class ASpeechBubble> SpeechBubbleClass;
+
+	ASpeechBubble* Speech;
 
 	
 
@@ -58,6 +61,9 @@ private:
 
 	/** Are we stopped */
 	bool bIsStopped;
+
+	/** Is Rover speaking? */
+	bool bIsSpeaking;
 
 	/** Time Handlers  */
 	FTimerHandle BrakeHandle; //Handbrake Handle
@@ -79,11 +85,19 @@ private:
 
 	float mTowerRotX;
 	float mTowerRotY;
-	
+
+	float TextOpacity;
+	FName opacityScalar;
+
 	FName boneName;
 	FName WeaponSocket;
+	FName SpeechSocket;
+	FVector SocketLoc;
+	FRotator SocketRot;
 
 	FVector *impulseForce;
+
+
 
 
 
@@ -135,6 +149,7 @@ public:
 
 	/** Handle Rover Speak */
 	void OnSpeak(FString dialogue);
+	void UpdateSpeakingText();
 
 
 #pragma endregion
@@ -143,10 +158,15 @@ public:
 
 	UMaterialInstanceDynamic* MainMaterial; // Main Material (For Color)
 	UMaterialInstanceDynamic* DynMaterial;  // Dynamic Material (For Wheels) 
+
+	UMaterialInstanceDynamic* TextMaterialInst;  // Text Material (For Text Render Component) 
+
+
 	FLinearColor RoverColor;
 
 	UMaterial* RoverMaterial;
 	UMaterial* WheelsMaterial;
+	UMaterial* TextMaterial;
 	
 	void UpdateSkControlsAndMats();
 	void RepaintRover(ARover *self);
@@ -188,7 +208,5 @@ public:
 	FORCEINLINE UCameraComponent* GetCamera() const { return Camera; }
 	/** Returns EngineSoundComponent subobject **/
 	FORCEINLINE UAudioComponent* GetEngineSound() const { return EngineSound; }
-	/** Returns TextRenderComponent subobject **/
-	FORCEINLINE UTextRenderComponent* GetTextRender() const { return SpeakText; }
 
 };
