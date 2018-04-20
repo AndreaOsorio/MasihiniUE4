@@ -1,16 +1,5 @@
-static func void run ()
-    var b : boolean;
-    var i : int;
+static func void run()
 {
-    b = true;
-    i = 0;
-speak('start');
-    while(i<=10){
-      speak(i);
-    	jump();
-    	accel(10.0f);
-    	rot(10.0f + 20 * (40+50));
-      i = i+1;
-    }
-speak('it works!');
+ rot(180.0f);
+ 
 }

@@ -35,9 +35,7 @@ void UReadWriteFile::TransferMasihini()
 
 void UReadWriteFile::CompileMasihini()
 {
-	//FPlatformProcess::CreateProc(TEXT("E:\\Documents\\ITESM\\CompilerDesign\\Masihini\\run.exe"), nullptr, true, false, false, nullptr, 0, nullptr, nullptr);
-	
-	FString pathRun = FPaths::ProjectDir() + "test.bat";
+	FString pathRun = FPaths::ProjectDir() + "execute.bat";
 	const char* commandRun = TCHAR_TO_ANSI(*pathRun);
 	int i = system(commandRun);
 	

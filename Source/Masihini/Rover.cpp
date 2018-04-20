@@ -25,6 +25,7 @@
 #include "Runtime/Engine/Classes/Engine/TextRenderActor.h"
 #include "Runtime/Engine/Classes/Components/TextRenderComponent.h"
 #include "SpeechBubble.h"
+#include "Goal.h"
 
 // Sets default values
 ARover::ARover()
@@ -41,7 +42,7 @@ ARover::ARover()
 	Mesh->SetSimulatePhysics(true);
 	Mesh->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));
 	Mesh->SetAngularDamping(0.02);
-	Mesh->bGenerateOverlapEvents = 1;
+	Mesh->bGenerateOverlapEvents = true;
 	Mesh->SetCollisionObjectType(ECollisionChannel::ECC_Vehicle);
 	Mesh->SetCollisionEnabled(ECollisionEnabled::Type::QueryAndPhysics);
 	Mesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Block);
@@ -154,9 +155,7 @@ ARover::ARover()
 	mTowerRotY = 0.0f;
 
 	boneName = FName(TEXT("None"));
-	impulseForce = new FVector(0.0f, 0.0f, 1000.0f);
-	
-	
+	impulseForce = new FVector(0.0f, -200.0f, 500.0f);
 	
 	currentInstruction = 0;
 	
@@ -192,12 +191,11 @@ void ARover::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	// set up gameplay key bindings
 	check(PlayerInputComponent);
 
+	/** Used only for testing */
 	//PlayerInputComponent->BindAxis("MoveForward", this, &ARover::MoveForward);
 	//PlayerInputComponent->BindAxis("MoveRight", this, &ARover::MoveRight);
-
 	//PlayerInputComponent->BindAction("Handbrake", IE_Pressed, this, &ARover::OnHandbrakePressed);
-
-	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ARover::OnJump);
+	//PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ARover::OnJump);
 }
 
 void ARover::MoveForward(float value, int mts)
@@ -232,9 +230,10 @@ void ARover::MoveRight(float value)
 	mRotateRate = value;
 	if (!bIsStopped)
 	{
-		float vectorZ = UGameplayStatics::GetWorldDeltaSeconds(GetWorld()) * mRotationSpeed * value * 1.4f;
+		float vectorZ = UGameplayStatics::GetWorldDeltaSeconds(GetWorld()) * mRotationSpeed * value * 2.0f;
 		FVector angularVelocity = UKismetMathLibrary::MakeVector(0.0f, 0.0f, vectorZ);
 		Mesh->SetPhysicsAngularVelocityInDegrees(angularVelocity, false, boneName);
+
 		AddEngineSpeed(this, value, -0.03f);
 		mRotateRate = 0.0f;
 		mEngineAcceleration = 0.0f;
@@ -439,6 +438,7 @@ void ARover::UpdateSpeakingText()
 void ARover::SetInstructionsSize(int newSize)
 {
 	instructionsSize = newSize;
+	currentInstruction = 0;
 }
 
 void ARover::SetInstructions(TArray<FString> newInstructions)
@@ -463,6 +463,15 @@ void ARover::AnalyzeInstruction(FString instruction)
 		float anglesRover = 0.0f;
 		
 		/** UE4 angles goes from -180 to 180 */
+		if (angles>360)
+		{
+			angles = 360;
+		}
+		else if (angles < (-360))
+		{
+			angles = -360;
+		}
+
 		anglesRover = angles / 2.0f;
 		anglesRover = anglesRover / 10.0f;
 		anglesRover = FMath::Clamp(anglesRover, -180.0f, 180.0f);
@@ -507,5 +516,17 @@ void ARover::StartMasihiniExecution()
 	}
 	
 }
+
+void ARover::OnDie()
+{
+
+}
+
+void ARover::OnWin()
+{
+
+}
+
+
 
 

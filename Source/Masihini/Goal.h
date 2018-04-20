@@ -6,6 +6,9 @@
 #include "GameFramework/Actor.h"
 #include "Goal.generated.h"
 
+
+class UBoxComponent;
+
 UCLASS()
 class MASIHINI_API AGoal : public AActor
 {
@@ -18,8 +21,17 @@ public:
 	UPROPERTY(EditDefaultsOnly)
 		UStaticMeshComponent* Mesh;
 
-	AActor* Player;
+	UPROPERTY(EditDefaultsOnly)
+		UBoxComponent* TriggerBox;
+
+	//ARover* Player;
 	
+
+private:
+
+	bool CheckPlayer();
+
+	FString currentLevel;
 
 
 protected:
@@ -29,6 +41,11 @@ protected:
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+
+	UFUNCTION()
+			void OnOverlap(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult);
+
+
 
 	
 	

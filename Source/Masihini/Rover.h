@@ -174,7 +174,6 @@ public:
 
 #pragma endregion
 
-
 #pragma region Masihini Functions
 
 	void SetInstructionsSize(int newSize);
@@ -186,6 +185,14 @@ public:
 	void StartMasihiniExecution();
 
 	
+
+#pragma endregion
+
+#pragma region Game Conditions
+
+	void OnDie();
+
+	void OnWin();
 
 #pragma endregion
 
